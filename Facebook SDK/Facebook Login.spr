@@ -1,0 +1,61 @@
+uses
+  W3C.DOM, W3C.HTML5, FaceBook.SDK;
+
+function LoginSuccess(data: Variant): Variant;
+begin
+  var welcomeBlock = document.getElementById('fb-welcome');
+  welcomeBlock.innerHTML := 'Hello, ' + data.first_name + '!';
+
+  // shut up the compiler
+  Result := nil;
+end;
+
+function onLogin(response: Variant): Variant;
+begin
+  if response.status = 'connected' then
+    FaceBookSDK.api('/me?fields=first_name', @LoginSuccess);
+
+  // shut up the compiler
+  Result := nil;
+end;
+
+function GetLoginStatus(response: Variant): Variant;
+begin
+  // Check login status on load, and if the user is
+  // already logged in, go directly to the welcome message.
+  if response.status = 'connected' then
+    onLogin(response)
+  else
+  begin
+    // Otherwise, show Login dialog first.
+    FaceBookSDK.login(@onLogin, JFBLoginOptions(class
+      scope = 'user_friends, email'
+    end));
+  end;
+
+  // shut up the compiler
+  Result := nil;
+end;
+
+Window.fbAsyncInit := lambda
+  FaceBookSDK.init(JFBInitParams(class
+      appId = 'ID';     // NOTE: you need to adapt this!!!
+      cookie = true;    // enable cookies to allow the server to access the session
+      xfbml = true;     // parse social plugins on this page
+      version = 'v2.5'; // use graph api version 2.5
+    end));
+
+  FaceBookSDK.getLoginStatus(@GetLoginStatus);
+end;
+
+var Heading := JHTMLHeadingElement(Document.createElement('h1'));
+Heading.id := 'fb-welcome';
+
+var Script := JHTMLScriptElement(Document.createElement('script'));
+Script.id := 'facebook-jssdk';
+
+// Now load the en_US version of the FaceBook SDK (other languages work as well)
+Script.src := '//connect.facebook.net/en_US/sdk.js';
+
+// append script element to document body
+Document.body.appendChild(Script);
